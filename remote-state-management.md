@@ -37,7 +37,13 @@ aws s3 ls
 ```bash
 aws s3api create-bucket --bucket my-terraform-state-bucket --region us-east-1 #Create S3 Bucket (for Terraform state)
 
-aws s3api put-bucket-versioning --bucket my-terraform-state-bucket --versioning-configuration Status=Enabled #Add versioning (to recover old state versions if needed)
+aws s3api create-bucket \
+  --bucket my-terraform-state-bucket \
+  --region ap-south-1 \
+  --create-bucket-configuration LocationConstraint=ap-south-1
+
+
+aws s3api put-bucket-versioning --bucket mahin-terraform-state-bucket --versioning-configuration Status=Enabled #Add versioning (to recover old state versions if needed)
 
 aws dynamodb create-table \
     --table-name terraform-lock-table \

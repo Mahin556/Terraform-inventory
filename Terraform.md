@@ -1,7 +1,7 @@
 * Open-source
 * IAC tool
 * Provision infra using code/config file
-* Config file --> HCL,yaml,json etc
+* Config file --> HCL(mostly),yaml,json etc
 * Config file ---> State of infra
 * Allow
     * Reuse

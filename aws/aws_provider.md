@@ -138,6 +138,41 @@
 
 <br>
 
+* **Difference version constraints**
+  ```bash
+  provider "aws" {} #latest
+
+  version = "2.17.0" #Exact Version Constraint
+
+  version = ">= 2.17.0"
+
+  version = "< 3.0.0"
+
+  version = ">= 2.17.0, < 3.0.0"
+
+  #Pessimistic Constraint
+  version = "~> 2.17.0"  #Pin PATCH version --> 2.17.0 , 2.17.1, 2.17.2 etc
+
+  version = "~> 2.17" #Pin MINOR version --> 2.17.1, 2.18.0, 2.30.0 etc Not-> 3.x.x
+
+  version = ">= 2.17" #Wildcard Constraint Very open → NOT recommended unless needed.
+  ```
+
+<br>
+
+* **Provider version locking**
+  * Always specify the provider version: `version = "~> 2.17.0"` or version = "2.17.0" 
+  * Without it whenever your run a `terraform init` or `terraform init -upgrade` it will upgrade a provider to the most recent version it can cause:
+    * If provider change something in latest pluging unintended upgrade can cause breaking of config.
+  * Providers often change:
+    * Resource attributes
+    * Field formats
+    * Required arguments
+    * API behaviors
+    * Data source outputs
+  * It make config predictable and prevent breaking.
+
+
 * **Custom Providers (for advanced users)**
   * If the provider doesn’t exist for your platform or internal API, you can build your own.
   * Written in Go using the Terraform Plugin SDK.
@@ -614,5 +649,201 @@ terraform apply
       terraform init -upgrade
       ```
     * **S4:** If the configuration worked before and suddenly fails, check the `.terraform.lock.hcl` file for version drift.
+
+---
+
+Here is the **clear, exact explanation** of the Terraform `provider_installation` block — what it is, why we use it, and how to configure it to use a **local provider mirror**.
+
+This is **100% correct Terraform syntax**, valid for Terraform 1.x and above.
+
+---
+
+# ✔ What is `provider_installation`?
+
+Terraform normally downloads providers from:
+
+* Terraform Registry (registry.terraform.io)
+* HashiCorp releases IAM
+* Private registries (if configured)
+
+But sometimes you **do NOT want Terraform to download from the internet**.
+
+You may want to:
+
+* Use a **local mirror**
+* Use an **internal company registry**
+* Avoid internet access for security reasons
+* Speed up provider downloads
+* Work in offline/air-gapped environments
+
+To override Terraform’s default provider download behavior, you configure:
+
+```
+provider_installation { ... }
+```
+
+inside a `.terraformrc` (CLI config) or `terraform.rc` file.
+
+---
+
+# ✔ Location of the Config File
+
+### **Linux / macOS**
+
+```
+~/.terraformrc
+```
+
+### **Windows**
+
+```
+%APPDATA%\terraform.rc
+```
+
+For Git Bash:
+
+```
+/c/Users/<USERNAME>/AppData/Roaming/terraform.rc
+```
+
+---
+
+# ✔ Full Example: Use Local Provider Mirror
+
+Create directory to store mirrored providers:
+
+```bash
+mkdir -p ~/terraform-providers
+```
+
+Add providers manually or using `terraform providers mirror`:
+
+```bash
+terraform providers mirror ~/terraform-providers
+```
+
+This downloads all required providers into the folder.
+
+---
+
+Now create your config file:
+
+### `~/.terraformrc` (Linux/macOS)
+
+### `terraform.rc` (Windows)
+
+Add:
+
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path    = "C:/Users/ADMIN/terraform-providers"
+    include = ["hashicorp/aws", "hashicorp/azurerm"]
+  }
+
+  direct {
+    exclude = ["hashicorp/aws", "hashicorp/azurerm"]
+  }
+}
+```
+
+---
+
+# ✔ What This Configuration Means
+
+### ✔ 1. `filesystem_mirror`
+
+Terraform will **install providers from your local folder** instead of downloading them.
+
+### ✔ 2. `include`
+
+These specific providers are taken **only** from the local mirror.
+
+Example above includes:
+
+* `hashicorp/aws`
+* `hashicorp/azurerm`
+
+### ✔ 3. `direct` block
+
+All other providers (not listed in `include`) will be downloaded normally from the registry.
+
+---
+
+# ✔ If You Want to Block ALL External Downloads
+
+Use this:
+
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path    = "C:/Users/ADMIN/terraform-providers"
+  }
+
+  # Block all external downloads
+  direct {
+    exclude = ["*"]
+  }
+}
+```
+
+This makes Terraform work in **offline mode**, using only local providers.
+
+---
+
+# ✔ Use Case: Air-Gapped or Restricted Environments
+
+If internet is blocked, use:
+
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path = "/opt/terraform/providers"
+  }
+}
+```
+
+Now Terraform will fail if provider is missing → good for strict infra.
+
+---
+
+# ✔ Generate Local Provider Mirror Automatically
+
+Terraform supports:
+
+```bash
+terraform providers mirror /path/to/mirror
+```
+
+Example:
+
+```bash
+terraform providers mirror C:/tf-mirror
+```
+
+This downloads all providers required by your Terraform configuration into that folder.
+
+---
+
+# ✔ Validate It Is Working
+
+Run:
+
+```bash
+terraform init -upgrade
+```
+
+You should see:
+
+```
+Installing hashicorp/aws v5.46.0 from local mirror
+Installing hashicorp/azurerm v4.54.0 from local mirror
+```
+
+instead of:
+
+```
+Downloading hashicorp/aws...
+```
 
 ---
