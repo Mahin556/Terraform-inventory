@@ -51,6 +51,19 @@ I will give:
 | `indent()`     | `indent("hello", 4)`               | `"    hello"`         |
 | `trim()`       | `trim("!!abc!!", "!")`             | `"abc"`               |
 
+```bash
+#substr() is a Terraform string function used to extract a portion (substring) from a larger string.
+#substr(string, offset, length)
+    #string → input string
+    #offset → starting index (0-based)
+    #length → number of characters to extract
+substr("learning", 0, 4) #--->"lear"
+substr("hello", 10, 2) #--->error
+substr("hello", 3, 10) #--->lo
+substr("abcdef", -3, 2) #--->de
+substr(12345, 1, 2) #→ ERROR ---> can't work on non string
+```
+
 ---
 
 # ⭐ 2. **NUMERIC FUNCTIONS**

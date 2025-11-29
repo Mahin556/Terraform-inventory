@@ -1,3 +1,14 @@
+* Using terraform we can create a infrastructure on a cloud provider.
+* This infra server some purpose this can be hosting a backend login, frontend, database etc.
+* This is not part of infrastructure provisioning but actually part of configuration management.
+* But terraform allow to configure a infra like EC2 using terraform provisioners.
+* Using provisioner we can run commands/scripts or perform file operations on local or remote machine.
+* They can also transfer file from local machine to remote machine.
+* There are three available provisioners: file (used for copying), local-exec (used for local operations), remote-exec (used for remote operations). 
+* The file and remote-exec provisioners need a connection block to be able to do the remote operations.
+* These connections help Terraform log into the newly created instance and perform these operations.
+* Hashicorp suggests Terraform provisioners should only be considered when there is no other option. 
+
 ```hcl
 resource "aws_instance" "name" {
   ami                    = "ami-0521bc4c70257a054"

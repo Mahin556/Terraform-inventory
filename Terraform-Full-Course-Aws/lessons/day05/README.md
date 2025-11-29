@@ -1,6 +1,9 @@
 # Day 5/28 - Terraform Variables Demo
 
 A simple demo showing the three types of Terraform variables using a basic S3 bucket.
+Variable 
+  * Value easly changed
+  * Consistency
 
 ## 🎯 Three Types of Variables
 
@@ -35,6 +38,23 @@ output "bucket_name" {
   value       = aws_s3_bucket.demo.bucket
 }
 ```
+
+### variables types
+```
+String
+Number
+Bool
+List
+Set
+Map
+Object
+Tuple
+Any
+Null
+```
+
+* Input variable value can be change -- dynamic
+* Local variable can't be changed -- suitable for processing or combining values from multiple variables.
 
 ## 📥 Understanding Input Variables in Detail
 
@@ -141,6 +161,85 @@ output "tags" {
   value       = local.common_tags
 }
 ```
+
+### Terraform Variable Block Template
+
+```hcl
+variable "<LABEL>" {
+  type        = <TYPE>            # string, number, bool, list(...), map(...), object(...)
+  default     = <DEFAULT_VALUE>   # optional
+  description = "<DESCRIPTION>"   # optional
+  sensitive   = <true|false>      # hides value in plan/apply output
+  nullable    = <true|false>      # allow null values (v1.3+)
+  ephemeral   = <true|false>      # not stored in state file (v1.7+)
+
+  validation {
+    condition     = <EXPRESSION>      # must evaluate to true
+    error_message = "<ERROR_MESSAGE>" # show if validation fails
+  }
+}
+```
+
+| Field           | Purpose                                                         |
+| --------------- | --------------------------------------------------------------- |
+| **type**        | Enforces the type of input (string, number, list(string), etc.) |
+| **default**     | Provides a value if user does not pass anything                 |
+| **description** | Shows description in `terraform docs` or modules                |
+| **sensitive**   | Masks output in CLI (use for passwords, keys, tokens)           |
+| **nullable**    | Allows variable to be null (else must always have a value)      |
+| **ephemeral**   | Value is NOT written to the state file (Terraform 1.7+)         |
+| **validation**  | Custom rules to validate variable inputs                        |
+
+```hcl
+#String variable with validation
+variable "environment" {
+  type        = string
+  default     = "dev"
+  description = "Deployment environment"
+
+  validation {
+    condition     = contains(["dev", "qa", "prod"], var.environment)
+    error_message = "Environment must be dev, qa, or prod"
+  }
+}
+
+#Password variable (sensitive)
+variable "db_password" {
+  type        = string
+  sensitive   = true
+  description = "Database admin password"
+}
+
+#Ephemeral variable (NOT stored in state)
+variable "temporary_token" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+#List + validation
+variable "allowed_ips" {
+  type = list(string)
+
+  validation {
+    condition     = length(var.allowed_ips) > 0
+    error_message = "At least one IP must be provided."
+  }
+}
+
+#Full Object Variable
+variable "vm_config" {
+  type = object({
+    instance_type = string
+    disk_size     = number
+    tags          = map(string)
+  })
+
+  nullable = false
+}
+```
+
+
 
 ### Viewing Outputs
 

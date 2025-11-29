@@ -8,6 +8,63 @@
 - S3 Native State Locking (No DynamoDB required)
 - State management
 
+Terraform stores infrastructure details in a file called terraform.tfstate.
+This file contains:
+Resource IDs
+Configured parameters
+Secrets / sensitive data
+Metadata Terraform needs to manage infra
+Terraform never directly scans AWS to compare resources (too slow).
+Instead, it compares your desired state (your .tf files) with the state file(actual state).
+
+* How Terraform Applies Infrastructure
+  * Desired State → Your .tf configuration
+  * Actual State → Resources already deployed
+  * State File → Intermediate truth
+  * Workflow:
+    * You run terraform apply.
+    * Terraform loads the state file.
+    * Compares:
+      * What exists → state file
+      * What you want → .tf files
+      * Makes required changes:
+      * Create missing resources
+      * Modify drifted resources
+      * Delete resources removed from config
+
+* Why the State File is Critical
+  * If deleted, Terraform forgets your entire infra.
+  * If corrupted, infra cannot be updated or destroyed.
+  * If leaked, attackers may see:
+    * AWS account ID
+    * Secrets
+    * Resource details
+    * Passwords (if not properly secured)
+
+* Why NOT store state file locally?
+  * Problems:
+    * Local machine can crash
+    * Hard to share among team
+    * No locking — multiple engineers can corrupt state
+    * Local backup impossible
+
+* State Locking (Critical Feature)
+  * Prevents multiple users from running terraform apply at the same time.
+  * Stops state corruption
+  * Lock is released when Terraform finishes running
+  * S3 backend now supports internal locking
+    (DynamoDB locking was required earlier)
+
+* Best Practices for Terraform State
+  * Never edit terraform.tfstate manually
+  * Never upload it to GitHub
+  * Never store it in local machine for production
+  * Always store state in S3 remote backend
+  * Enable encryption & locking
+  * Keep separate state file for each environment: `dev`,`test`,`prod`
+  * Take regular backups of state file
+  * Never delete S3 bucket hosting your state
+
 ## Key Learning Points
 
 ### How Terraform Updates Infrastructure
@@ -86,11 +143,11 @@ Create an S3 bucket with versioning and encryption enabled to store Terraform st
 ```hcl
 terraform {
   backend "s3" {
-    bucket       = "your-terraform-state-bucket"
-    key          = "dev/terraform.tfstate"
-    region       = "us-east-1"
-    use_lockfile = true
-    encrypt      = true
+    bucket       = "your-terraform-state-bucket" #S3 bucket storing state
+    key          = "dev/terraform.tfstate" #Path inside bucket (folder/file)
+    region       = "us-east-1" #Region of S3 bucket
+    use_lockfile = true #Enables AES256 encryption
+    encrypt      = true #Enables state locking
   }
 }
 ```

@@ -1048,20 +1048,3 @@ Options:
                         executes.
 ```
 
----
-
-# ✅ If you want, I can also provide:
-
-### ✔ Full Terraform interview cheat sheet
-
-### ✔ Full Terraform Associate Exam Guide
-
-### ✔ Full Terraform AWS project
-
-### ✔ Full Terraform Kubernetes project
-
-### ✔ Full Terraform Azure/GCP project
-
-### ✔ Terraform best practices
-
-Just tell me which one you want!

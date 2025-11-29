@@ -1655,3 +1655,97 @@ resource "aws_lb_cookie_stickiness_policy" "stickiness" {
   cookie_expiration_period = 600
 }
 ```
+
+---
+
+```bash
+###############################################
+# IMPORTANT TERRAFORM RULE (EC2 + ENI CONFLICT)
+#
+# You CANNOT mix:
+#   - network_interface { ... }
+# with:
+#   - subnet_id
+#   - vpc_security_group_ids
+#   - associate_public_ip_address
+#
+# Reason:
+#   When you attach a network_interface (ENI),
+#   the ENI already contains subnet + SGs.
+#   Terraform will not allow the instance to
+#   override networking settings.
+#
+# -------------------------------
+# FIX OPTION 1 (Use ENIs Only)
+# -------------------------------
+# Remove these from aws_instance:
+#   subnet_id
+#   vpc_security_group_ids
+#   associate_public_ip_address
+#
+# Use ONLY:
+#   network_interface {
+#     network_interface_id = <eni_id>
+#     device_index         = 0
+#   }
+#
+# -------------------------------
+# FIX OPTION 2 (Do NOT use ENIs)
+# -------------------------------
+# Remove the network_interface block.
+# Use normal settings:
+#   subnet_id
+#   vpc_security_group_ids
+#   associate_public_ip_address
+#
+# -------------------------------
+# SHORT RULE:
+#   If you use ENIs → DO NOT use instance-level networking.
+#   If you use instance networking → DO NOT attach ENIs.
+###############################################
+```
+
+---
+
+```hcl
+resource "aws_instance" "instance" {
+  ami           = data.aws_ami.ami_id.id
+  instance_type = "t2.micro"
+
+  # Primary ENI (MUST be device_index = 0)
+  network_interface {
+    network_interface_id = aws_network_interface.primary.id
+    device_index         = 0
+  }
+
+  # Optional secondary ENI
+  network_interface {
+    network_interface_id = aws_network_interface.secondary.id
+    device_index         = 1
+  }
+
+  tags = {
+    Name = "my-instance"
+  }
+}
+```
+```bash
+###############################################
+# ERROR FIX:
+# "When specifying network interfaces,
+#  you must include a device at index 0."
+#
+# Reason:
+#   Every EC2 MUST have a primary ENI
+#   attached at device_index = 0.
+#
+# FIX:
+#   network_interface {
+#     network_interface_id = <eni_primary>
+#     device_index         = 0
+#   }
+#
+#   Additional ENIs start from device_index = 1, 2, ...
+#
+###############################################
+```
