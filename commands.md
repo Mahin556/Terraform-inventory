@@ -402,6 +402,7 @@ Example:
 ## **12. `terraform init -migrate-state`**
 
 Migrates existing state to a new backend.
+Or Remote backend to local
 
 * Used when switching from **local → S3**, **local → Azure Blob**, etc.
 * Prompts for confirmation unless combined with `-force-copy`.
@@ -577,11 +578,11 @@ terraform apply plan.out
 
 ---
 
-### ✔ `terraform destroy`
+### `terraform destroy`
 
 Destroys resources.
 
-```
+```bash
 terraform destroy
 terraform destroy -target=aws_s3_bucket.demo
 terraform destroy -target=aws_instance.backend_instance
@@ -591,14 +592,86 @@ terraform destroy -var-file="vars.tfvars"
 
 ---
 
-### ✔ `terraform show`
+### `terraform show`
+* https://developer.hashicorp.com/terraform/cli/commands/show
+* https://spacelift.io/blog/terraform-state-show
 
 Show human-readable or JSON state.
 
-```
+```bash
 terraform show
 terraform show -json
 terraform show plan.out
+```
+```bash
+# What is `terraform show`?
+# • Displays the Terraform state or a saved plan file in a human-readable format.
+# • Can also output JSON for automation, debugging, or integration with tools.
+# • Commonly used to inspect:
+#     - Current state
+#     - Outputs
+#     - Attributes of resources
+#     - Planned changes (when reading a plan file)
+
+# Basic Usage
+# • Show the currently applied state:
+     terraform show
+# Equivalent to reading terraform.tfstate in readable format.
+
+# Show Specific State File
+# • Useful for analyzing remote state pulled locally, or backup versions.
+     terraform show state.tfstate
+
+
+# Show JSON Output (Machine-Readable)
+# • Converts full Terraform state into JSON format.
+# • Very useful for automation, scripts, parsers, CI/CD systems.
+     terraform show -json > state.json
+     terraform.exe show -json | jq . > state.json 
+
+
+# Show Plan Output (Human-Readable)
+# You must first create a plan file:
+     terraform plan -out=plan.out
+# Then display the planned changes:
+     terraform show plan.out
+
+
+# Show Plan Output as JSON
+# • Allows automation tools to parse what Terraform will change.
+     terraform show -json plan.out > plan.json
+
+
+# Options (Flags)
+# ---------------
+#   -json        → Output JSON instead of human-readable text
+#   -no-color    → Disable colored output (useful for logs/CI)
+
+# Examples
+# --------
+# 1. Show current state:
+     terraform show
+#
+# 2. Show state without colors:
+     terraform show -no-color
+#
+# 3. Show state in JSON:
+     terraform show -json > full-state.json
+#
+# 4. Show a plan file:
+     terraform show plan.out
+#
+# 5. Convert plan file to JSON:
+     terraform show -json plan.out > plan.json
+
+# When to Use `terraform show`?
+# -----------------------------
+# • Debugging infrastructure drift
+# • Inspecting values stored in state
+# • Understanding resource attributes
+# • Validating outputs stored in state
+# • Verifying planned changes before apply
+# • Parsing JSON output for automation
 ```
 
 ---
@@ -644,153 +717,170 @@ terraform providers schema -json
 ---
 
 # **4. TERRAFORM STATE COMMANDS (FULL SET)**
-
+* https://developer.hashicorp.com/terraform/language/state
+* 
 ```bash
-#==========================================================================================
 # 1. terraform state list
-# ------------------------------------------------------------------------------------------
+terraform state list
+terraform.exe state list -state=terraform.tfstate 
 # PURPOSE:
 #   - Lists ALL resources Terraform is currently tracking in the state file.
 #   - Shows the “inventory” Terraform knows about.
 #   - Very useful for debugging drift & confirming infra mapping.
-#
 # WHEN TO USE:
 #   - After `terraform apply`
 #   - Before refactoring (moving resources into modules)
 #   - When something exists in cloud but Terraform doesn't know / vice-versa
-# ==========================================================================================
-terraform state list
-
 # Example Output:
 #   aws_instance.web
 #   aws_s3_bucket.logs
 #   module.vpc.aws_subnet.public[0]
+# ==========================================================================================
 
 
 # ==========================================================================================
 # 2. terraform state show <address>
-# ------------------------------------------------------------------------------------------
+terraform state show aws_instance.web
 # PURPOSE:
 #   - Shows FULL saved attributes of a resource from the state file.
 #   - Equivalent to reading the JSON inside terraform.tfstate.
 #   - Extremely useful to inspect hidden attributes (IDs, ARNs, public IPs).
-#
 # WHEN TO USE:
 #   - Debugging mismatched values
 #   - Extracting resource IDs/ARNs
 #   - Understanding provider-computed properties
 # ==========================================================================================
-terraform state show aws_instance.web
 
 
 # ==========================================================================================
 # 3. terraform state rm <address>
-# ------------------------------------------------------------------------------------------
+terraform state rm aws_s3_bucket.demo
 # PURPOSE:
 #   - Removes a resource ONLY from Terraform state.
 #   - DOES NOT delete the real infrastructure.
-#
 # WHEN TO USE:
 #   - Resource was created manually outside Terraform
 #   - Removing imported resources
 #   - Fixing "already exists" or duplicate resource issues
 #   - Resolving inconsistent / corrupted state entries
-#
 # WARNING:
 #   - After removal, Terraform may try to recreate the resource on next apply.
 # ==========================================================================================
-terraform state rm aws_s3_bucket.demo
 
 
 # ==========================================================================================
 # 4. terraform state mv <source> <destination>
-# ------------------------------------------------------------------------------------------
+terraform state mv aws_instance.web module.vpc.aws_instance.web
+terraform state mv aws_security_group.old aws_security_group.new
 # PURPOSE:
 #   - Moves/renames a resource inside the state file.
 #   - NO CHANGE happens in cloud. Only the TF state updates.
 #   - Useful for refactoring or module restructuring.
-#
 # WHEN TO USE:
 #   - Renaming resources
 #   - Moving resource to a module:
 #       aws_instance.web --> module.vpc.aws_instance.web
 #   - Extracting resources OUT of a module
 #   - Changing index notation (e.g., list to map)
-#
 # SAFE:
 #   - Yes. No infra is recreated or destroyed.
 # ==========================================================================================
-terraform state mv aws_instance.web module.vpc.aws_instance.web
-terraform state mv aws_security_group.old aws_security_group.new
 
 
 # ==========================================================================================
 # 5. terraform state replace-provider <old> <new>
-# ------------------------------------------------------------------------------------------
+terraform state replace-provider \
+  registry.terraform.io/-/aws \
+  registry.terraform.io/hashicorp/aws
 # PURPOSE:
-#   - Updates provider reference inside state.
+#   - Updates old provider namespace to new namespace inside state.
 #   - Needed during provider namespace changes.
-#
+#   - Required when upgrading from Terraform <0.13 or provider name changes.
 # EXAMPLES OF USE:
 #   - Migrating from:
 #       registry.terraform.io/-/aws → registry.terraform.io/hashicorp/aws
 #   - Fixing provider upgrade failures.
-#
 # WHEN YOU SEE ERRORS LIKE:
 #   "provider registry.terraform.io/-/aws is deprecated"
 # ==========================================================================================
-terraform state replace-provider \
-  registry.terraform.io/-/aws \
-  registry.terraform.io/hashicorp/aws
 
 
 # ==========================================================================================
 # 6. terraform state pull
-# ------------------------------------------------------------------------------------------
+terraform state pull > backup.tfstate
 # PURPOSE:
-#   - Downloads the CURRENT state file (JSON format).
+#   - Downloads the CURRENT state file (JSON format) to local stdout.
 #   - Works even with remote backends (S3, Consul, GCS).
-#
+#   - Read-only — safe for debugging.
 # WHEN TO USE:
 #   - Debugging remote backend issues
 #   - Taking manual backups
 #   - Inspecting raw state data
 # ==========================================================================================
-terraform state pull > backup.tfstate
 
 
 # ==========================================================================================
 # 7. terraform state push <file>
-# ------------------------------------------------------------------------------------------
+terraform state push backup.tfstate
 # PURPOSE:
 #   - Uploads a state file to the backend.
 #   - Overwrites remote state.
-#
 # DANGEROUS:
 #   - Can overwrite good state with bad data.
-#
 # WHEN TO USE:
 #   - Restoring a backup
 #   - Replacing corrupted state
 #   - Backend migrations (local → remote or remote → remote)
 # ==========================================================================================
-terraform state push backup.tfstate
 
 
 # ==========================================================================================
-# 8. Summary Table (Quick Reference)
-# ------------------------------------------------------------------------------------------
-# COMMAND                        PURPOSE                                 SAFETY
-# ------------------------------------------------------------------------------------------
-# terraform state list           Show all tracked resources              SAFE
-# terraform state show           View attributes of resource             SAFE
-# terraform state rm             Remove entry from state                 RISKY
-# terraform state mv             Move/rename state entries               SAFE
-# terraform state replace        Update provider namespace               SAFE
-# terraform state pull           Download state JSON                     SAFE
-# terraform state push           Upload/overwrite state                  VERY RISKY
-# ------------------------------------------------------------------------------------------
-############################################################################################
+# 8️⃣ terraform state add (Deprecated)
+# -----------------------------------
+# • Used in very old Terraform versions.
+# • Replaced by `terraform import`.
+# ==========================================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADVANCED STATE USE CASES (Not state commands but related operations)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ➤ Import existing resources
+#   terraform import aws_s3_bucket.example my-bucket
+
+# ➤ Refresh state (deprecated — auto in TF 1.x)
+#   terraform refresh
+
+# ➤ View full state in JSON
+#   terraform show -json > state.json
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRACTICAL EXAMPLES USING STATE COMMANDS
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ✔ Rename a resource without destroying it:
+#   terraform state mv aws_instance.old aws_instance.new
+
+# ✔ Move a resource into a module:
+#   terraform state mv aws_eip.ip module.network.aws_eip.ip
+
+# ✔ Remove resource from state so Terraform recreates it:
+#   terraform state rm aws_iam_role.example
+#   terraform apply
+
+# ✔ Debug remote backend state:
+#   terraform state pull > remote_state.json
+
+# ✔ Replace old provider name:
+#   terraform state replace-provider \
+#     registry.terraform.io/-/kubernetes \
+#     registry.terraform.io/hashicorp/kubernetes
+```
+```bash
+terraform show -json | jq . > state.json
+terraform.exe state list
+terraform.exe state list -state=terraform.tfstate
 ```
 
 ---
@@ -816,11 +906,166 @@ terraform workspace list
 ---
 
 # 🟪 **6. TERRAFORM IMPORT COMMAND**
+* https://developer.hashicorp.com/terraform/cli/commands/import
+* https://developer.hashicorp.com/terraform/tutorials/state/state-import
+* https://developer.hashicorp.com/terraform/language/import
+* https://developer.hashicorp.com/terraform/cli/import
 
 ```
 terraform import
 terraform import -allow-missing-config
 terraform import aws_instance.myec2 i-0ac56d9ce
+```
+```bash
+
+# What is `terraform import`?
+# ---------------------------
+# • Used to bring an existing cloud resource under Terraform management.
+# • Updates terraform.tfstate so Terraform knows the resource already exists.
+# • Does NOT modify the actual cloud resource—only updates state.
+# • After import, you MUST write HCL configuration to match the real resource.
+
+# Why Use terraform import?
+# -------------------------
+# • Adopt AWS resources created manually in console.
+# • Migrate legacy or unmanaged resources into Terraform.
+# • Recover missing or corrupted state entries.
+# • Reclaim resources recreated manually.
+# • Bring orphaned resources back into control.
+
+# What terraform import CANNOT Do:
+# --------------------------------
+# • Does not generate .tf configuration automatically.
+# • Does not export the full resource configuration.
+# • Does not modify the cloud resource.
+# • You must manually write/update the resource block.
+# • You must match real settings so plan becomes clean.
+
+# Syntax:
+# -------
+#   terraform import <resource_address> <resource_id>
+
+
+# STEP-BY-STEP WORKFLOW
+# ---------------------
+
+# 1. Write the resource block (can be empty)
+resource "aws_s3_bucket" "mybucket" {}
+
+# 2. Initialize Terraform
+     terraform init
+
+# 3. Import the real AWS resource
+     terraform import aws_s3_bucket.mybucket my-existing-bucket
+
+# 4. Verify state
+     terraform state list
+     terraform state show aws_s3_bucket.mybucket
+
+# 5. Update .tf code to match real config:
+#     - tags
+#     - versioning
+#     - encryption
+#     - policies
+#     - lifecycle rules
+# Terraform will continue to show changes until configuration matches reality.
+
+
+# COMMON AWS IMPORT EXAMPLES
+# --------------------------
+
+# S3 Bucket
+   terraform import aws_s3_bucket.example my-bucket-name
+
+# EC2 Instance
+   terraform import aws_instance.web i-0abc123def456
+
+# VPC
+   terraform import aws_vpc.main vpc-0a1b2c3d4e
+
+# Subnet
+   terraform import aws_subnet.public subnet-1234abcd
+
+# Route Table
+   terraform import aws_route_table.public rtb-111222333
+
+# Security Group
+   terraform import aws_security_group.web sg-0aabb112233
+
+# IAM Role
+   terraform import aws_iam_role.ecs_role ecsTaskExecutionRole
+
+# RDS Instance
+   terraform import aws_db_instance.mydb mydb-identifier
+
+# ALB / NLB
+# Load Balancer:
+   terraform import aws_lb.alb arn:aws:elasticloadbalancing:region:acct:loadbalancer/app/alb-name/12345
+#
+# Target Group:
+   terraform import aws_lb_target_group.tg arn:aws:elasticloadbalancing:region:acct:targetgroup/my-tg/abcd1234
+
+# CloudWatch Log Group
+   terraform import aws_cloudwatch_log_group.example /aws/lambda/myfunction
+
+
+# Resource Address vs Resource ID
+# -------------------------------
+# Resource Address (in HCL):
+#   aws_instance.myserver
+#   module.prod.aws_vpc.main
+#
+# Resource ID (from cloud provider):
+#   i-12345
+#   vpc-abcde
+#   my-s3-bucket-name
+#   sg-224466
+
+
+# IMPORTANT NOTES
+# ---------------
+# • Import does NOT validate configuration.
+# • Import writes ONLY to state, not to cloud.
+# • Always run terraform plan after import.
+# • If plan wants changes → update your .tf code.
+# • Import can be repeated—latest import overwrites state.
+
+# Importing Resources Inside Modules:
+# -----------------------------------
+   terraform import "module.network.aws_subnet.public[0]" subnet-1234abcd
+
+# Importing with count:
+# ----------------------
+   terraform import aws_instance.server[0] i-11111
+   terraform import aws_instance.server[1] i-22222
+
+# Importing with for_each:
+# -------------------------
+   terraform import aws_s3_bucket.bucket["logs"] logs-bucket-1234
+
+
+# How to Find Import IDs:
+# ------------------------
+# AWS CLI examples:
+   aws s3api list-buckets
+   aws ec2 describe-instances
+   aws ec2 describe-vpcs
+   aws ec2 describe-security-groups
+   aws ec2 describe-subnets
+
+
+# Destroying Imported Resources:
+# ------------------------------
+# If you want Terraform to delete the imported resource:
+   terraform destroy -target=aws_s3_bucket.mybucket
+
+
+# SUMMARY:
+# --------
+# • terraform import brings unmanaged resources under Terraform control.
+# • Requires manually creating/updating resource blocks in .tf files.
+# • One of the most important commands for state recovery and migration.
+# • Terraform only updates state; your HCL must match manually.
 ```
 
 ---

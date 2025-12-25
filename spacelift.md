@@ -1,0 +1,1 @@
+* Using spacelift to manage statefile --> https://spacelift.io/blog/terraform-backends#managing-terraform-remote-backends-with-spacelift

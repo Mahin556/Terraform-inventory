@@ -142,20 +142,22 @@
   ```bash
   provider "aws" {} #latest
 
-  version = "2.17.0" #Exact Version Constraint
+  required_version = "2.17.0" #Exact Version Constraint
 
-  version = ">= 2.17.0"
+  required_version = ">= 2.17.0"
 
-  version = "< 3.0.0"
+  required_version = "< 3.0.0"
 
-  version = ">= 2.17.0, < 3.0.0"
+  required_version = ">= 2.17.0, < 3.0.0"
+
+  required_version = "> 1.12.0, <=1.12.5"
 
   #Pessimistic Constraint
-  version = "~> 2.17.0"  #Pin PATCH version --> 2.17.0 , 2.17.1, 2.17.2 etc
+  required_version = "~> 2.17.0"  #Pin PATCH version --> 2.17.0 , 2.17.1, 2.17.2 etc
 
-  version = "~> 2.17" #Pin MINOR version --> 2.17.1, 2.18.0, 2.30.0 etc Not-> 3.x.x
+  required_version = "~> 2.17" #Pin MINOR version --> 2.17.1, 2.18.0, 2.30.0 etc Not-> 3.x.x
 
-  version = ">= 2.17" #Wildcard Constraint Very open → NOT recommended unless needed.
+  required_version = ">= 2.17" #Wildcard Constraint Very open → NOT recommended unless needed.
   ```
 
 <br>

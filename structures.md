@@ -153,3 +153,80 @@ output.tf
     ```bash
     terraform force-unlock <LOCK_ID>
     ```
+
+---
+
+### `terraform.tfstate.backup`
+
+* What is terraform.tfstate.backup?
+    ```bash
+    • This file is an automatic backup of the previous Terraform state.
+    • Terraform creates it every time it updates the main terraform.tfstate.
+    • It allows recovery if the latest state becomes corrupted or invalid.
+    ```
+* Example files stored locally:
+    ```bash
+    terraform.tfstate          # current state
+    terraform.tfstate.backup   # previous state (backup)
+    ```
+* Why Terraform Creates It?
+    ```bash
+    • Protection against:
+    - corrupted state files
+    - failed apply
+    - accidental manual edits
+    - wrong terraform import
+    - state migration failures
+    • It acts as a safety net for restoring infrastructure state.
+    ```
+* Where is it stored?
+    ```bash
+    • Local backend → stored in working directory (visible to user).
+    • Remote backend → backup/versioning handled by backend itself, 
+    so terraform.tfstate.backup does NOT appear locally.
+    ```
+* When is terraform.tfstate.backup created?
+    ```bash
+    * After operations that modify state:
+    • terraform apply
+    • terraform destroy
+    • terraform import
+    • terraform state mv
+    • terraform state rm
+    • terraform taint / untaint
+    Terraform always keeps the *previous* state as the backup.
+    ```
+* Backup lifecycle behavior:
+    ```bash
+    tfstate.backup = previous state
+    tfstate         = current state
+    Each update shifts the current state → backup file automatically.
+    ```
+* How to restore from terraform.tfstate.backup?
+    ```bash
+    Steps:
+    1. Delete or rename the corrupted terraform.tfstate
+    2. Rename backup file to primary state:
+        mv terraform.tfstate.backup terraform.tfstate
+    3. Validate with:
+        terraform plan
+    Terraform will continue using the restored state.
+    ```
+* Remote backend behavior:
+    ```bash
+    • If using S3, Terraform Cloud, Azure blob, etc.:
+        - No local backup file is created.
+        - Backend stores version history automatically.
+        - S3 versioning = multiple historical state versions stored.
+    ```
+* Should you delete terraform.tfstate.backup?
+    ```bash
+    • DO NOT DELETE (recommended to keep).
+    • Safe to delete ONLY IF:
+    - Using remote backend + CI/CD pipelines
+    - Cleaning up working directory intentionally
+    For personal/local Terraform → always keep the backup.
+    ```
+
+---
+
