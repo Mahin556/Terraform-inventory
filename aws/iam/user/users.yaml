@@ -1,0 +1,15 @@
+users:
+  - name: Mahin
+    roles: [AmazonEC2FullAccess]
+  - name: Raza
+    roles: [AmazonEC2FullAccess,AmazonS3FullAccess]
+  - name: Demo
+    roles: [AmazonS3FullAccess]
+  - name: Demo1
+    roles: [AmazonS3FullAccess]
+  - name: Demo2
+    roles: [AmazonS3FullAccess]
+  - name: Demo3
+    roles: [AmazonS3FullAccess]
+  - name: Demo4
+    roles: [AmazonS3FullAccess]

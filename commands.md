@@ -933,13 +933,11 @@ terraform import aws_instance.myec2 i-0ac56d9ce
 # • Reclaim resources recreated manually.
 # • Bring orphaned resources back into control.
 
-# What terraform import CANNOT Do:
+# Drawback of terraform plan:
 # --------------------------------
-# • Does not generate .tf configuration automatically.
-# • Does not export the full resource configuration.
-# • Does not modify the cloud resource.
-# • You must manually write/update the resource block.
-# • You must match real settings so plan becomes clean.
+# * You must manually write/update the resource configuration block.
+# * Does not give the execution plan.
+# * IF runs a apply commadn without adding a resource config block it will destroy the infra.
 
 # Syntax:
 # -------
@@ -1293,3 +1291,17 @@ Options:
                         executes.
 ```
 
+
+```bash
+terraform force-unlock bc5f0a09-f64b-214c-fd33-3fe2c269e90b
+```
+
+### Taint & Untaint
+```bash
+terraform taint aws_security_group.demo_sg
+terraform untaint aws_security_group.demo_sg
+
+# or
+
+terraform.exe destroy --target=aws_security_group.demo_sg
+```
