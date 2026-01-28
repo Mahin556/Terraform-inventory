@@ -717,166 +717,57 @@ terraform providers schema -json
 ---
 
 # **4. TERRAFORM STATE COMMANDS (FULL SET)**
-* https://developer.hashicorp.com/terraform/language/state
-* 
+
 ```bash
-# 1. terraform state list
 terraform state list
 terraform.exe state list -state=terraform.tfstate 
-# PURPOSE:
-#   - Lists ALL resources Terraform is currently tracking in the state file.
-#   - Shows the “inventory” Terraform knows about.
-#   - Very useful for debugging drift & confirming infra mapping.
-# WHEN TO USE:
-#   - After `terraform apply`
-#   - Before refactoring (moving resources into modules)
-#   - When something exists in cloud but Terraform doesn't know / vice-versa
-# Example Output:
-#   aws_instance.web
-#   aws_s3_bucket.logs
-#   module.vpc.aws_subnet.public[0]
-# ==========================================================================================
+# Lists ALL resources Terraform is currently tracking in the state file.
 
-
-# ==========================================================================================
-# 2. terraform state show <address>
 terraform state show aws_instance.web
-# PURPOSE:
-#   - Shows FULL saved attributes of a resource from the state file.
-#   - Equivalent to reading the JSON inside terraform.tfstate.
-#   - Extremely useful to inspect hidden attributes (IDs, ARNs, public IPs).
-# WHEN TO USE:
-#   - Debugging mismatched values
-#   - Extracting resource IDs/ARNs
-#   - Understanding provider-computed properties
-# ==========================================================================================
+# Shows FULL saved attributes of a resource from the state file.
+# Extremely useful to inspect hidden attributes (IDs, ARNs, public IPs).
+# Extracting resource IDs/ARNs
 
-
-# ==========================================================================================
-# 3. terraform state rm <address>
 terraform state rm aws_s3_bucket.demo
-# PURPOSE:
-#   - Removes a resource ONLY from Terraform state.
-#   - DOES NOT delete the real infrastructure.
-# WHEN TO USE:
-#   - Resource was created manually outside Terraform
-#   - Removing imported resources
-#   - Fixing "already exists" or duplicate resource issues
-#   - Resolving inconsistent / corrupted state entries
-# WARNING:
-#   - After removal, Terraform may try to recreate the resource on next apply.
-# ==========================================================================================
+# Removes a resource ONLY from Terraform state.
+# DOES NOT delete the real infrastructure.
 
-
-# ==========================================================================================
-# 4. terraform state mv <source> <destination>
 terraform state mv aws_instance.web module.vpc.aws_instance.web
 terraform state mv aws_security_group.old aws_security_group.new
-# PURPOSE:
-#   - Moves/renames a resource inside the state file.
-#   - NO CHANGE happens in cloud. Only the TF state updates.
-#   - Useful for refactoring or module restructuring.
-# WHEN TO USE:
-#   - Renaming resources
-#   - Moving resource to a module:
-#       aws_instance.web --> module.vpc.aws_instance.web
-#   - Extracting resources OUT of a module
-#   - Changing index notation (e.g., list to map)
-# SAFE:
-#   - Yes. No infra is recreated or destroyed.
-# ==========================================================================================
+# Moves/renames a resource inside the state file.
+# NO CHANGE happens in cloud. Only the TF state updates.
+# Extracting resources OUT of a module
+# Changing index notation (e.g., list to map)
 
-
-# ==========================================================================================
-# 5. terraform state replace-provider <old> <new>
 terraform state replace-provider \
   registry.terraform.io/-/aws \
   registry.terraform.io/hashicorp/aws
-# PURPOSE:
-#   - Updates old provider namespace to new namespace inside state.
-#   - Needed during provider namespace changes.
-#   - Required when upgrading from Terraform <0.13 or provider name changes.
-# EXAMPLES OF USE:
-#   - Migrating from:
-#       registry.terraform.io/-/aws → registry.terraform.io/hashicorp/aws
-#   - Fixing provider upgrade failures.
-# WHEN YOU SEE ERRORS LIKE:
-#   "provider registry.terraform.io/-/aws is deprecated"
-# ==========================================================================================
+# Updates old provider namespace to new namespace inside state.
+# Needed during provider namespace changes.
 
-
-# ==========================================================================================
-# 6. terraform state pull
 terraform state pull > backup.tfstate
-# PURPOSE:
-#   - Downloads the CURRENT state file (JSON format) to local stdout.
-#   - Works even with remote backends (S3, Consul, GCS).
-#   - Read-only — safe for debugging.
-# WHEN TO USE:
-#   - Debugging remote backend issues
-#   - Taking manual backups
-#   - Inspecting raw state data
-# ==========================================================================================
+# Downloads the CURRENT state file (JSON format) to local stdout.
+# Works even with remote backends (S3, Consul, GCS).
+# Read-only — safe for debugging.
 
-
-# ==========================================================================================
-# 7. terraform state push <file>
 terraform state push backup.tfstate
-# PURPOSE:
-#   - Uploads a state file to the backend.
-#   - Overwrites remote state.
-# DANGEROUS:
-#   - Can overwrite good state with bad data.
-# WHEN TO USE:
-#   - Restoring a backup
-#   - Replacing corrupted state
-#   - Backend migrations (local → remote or remote → remote)
-# ==========================================================================================
-
-
-# ==========================================================================================
-# 8️⃣ terraform state add (Deprecated)
-# -----------------------------------
-# • Used in very old Terraform versions.
-# • Replaced by `terraform import`.
-# ==========================================================================================
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ADVANCED STATE USE CASES (Not state commands but related operations)
-# ─────────────────────────────────────────────────────────────────────────────
+# Uploads a state file to the backend.
+# Overwrites remote state.
+# Can overwrite good state with bad data.
+# Restoring a backup
+# Replacing corrupted state
+# Backend migrations (local → remote or remote → remote)
 
 # ➤ Import existing resources
-#   terraform import aws_s3_bucket.example my-bucket
+terraform import aws_s3_bucket.example my-bucket
 
 # ➤ Refresh state (deprecated — auto in TF 1.x)
-#   terraform refresh
+terraform refresh
 
 # ➤ View full state in JSON
-#   terraform show -json > state.json
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PRACTICAL EXAMPLES USING STATE COMMANDS
-# ─────────────────────────────────────────────────────────────────────────────
-
-# ✔ Rename a resource without destroying it:
-#   terraform state mv aws_instance.old aws_instance.new
-
-# ✔ Move a resource into a module:
-#   terraform state mv aws_eip.ip module.network.aws_eip.ip
-
-# ✔ Remove resource from state so Terraform recreates it:
-#   terraform state rm aws_iam_role.example
-#   terraform apply
-
-# ✔ Debug remote backend state:
-#   terraform state pull > remote_state.json
-
-# ✔ Replace old provider name:
-#   terraform state replace-provider \
-#     registry.terraform.io/-/kubernetes \
-#     registry.terraform.io/hashicorp/kubernetes
+terraform show -json > state.json
 ```
+
 ```bash
 terraform show -json | jq . > state.json
 terraform.exe state list
